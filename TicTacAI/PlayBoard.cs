@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -8,22 +7,24 @@ namespace TicTacAI
     public partial class PlayBoard : Form
     {
         private Bot bot;
-        private bool p1_turn;
-        private bool p1_is_x;
-        private bool p2_isAI;
-        private int boardsize = 3;
+
+        private int boardSize = 3;
+        private bool isPlayerTwoAI;
+        private bool isPlayerOneTurn;
 
         public int[,] board;
+        public bool isPlayerOneX;
 
         public PlayBoard()
         {
             InitializeComponent();
+            this.Hide();
         }
 
         private void SetBoard()
         {
             // Resets the UI and array board
-            board = new int[boardsize, boardsize];
+            board = new int[boardSize, boardSize];
             foreach (Button btn in this.Controls.OfType<Button>())
             { 
                 btn.Text = String.Empty;
@@ -31,74 +32,70 @@ namespace TicTacAI
             }
 
             // Determine first turn
-            p1_turn = p1_is_x = (new Random().Next(10) >= 5);
-            if (p2_isAI)
+            isPlayerOneTurn = isPlayerOneX = (new Random().Next(10) >= 5);
+            if (isPlayerTwoAI)
             {
                 bot = new Bot(this);
             }
-            ChangeTurn();
+            SetTurn();
         }
 
-        private void ChangeTurn()
+        private void SetTurn()
         {
-            StatusStripLabel.Text = (p1_turn) ? "Player One's turn" : "Player Two's turn";
-            if (!p1_turn && p2_isAI)
+            StatusStripLabel.Text = (isPlayerOneTurn) ? "Player One's turn" : "Player Two's turn";
+            if (!isPlayerOneTurn && isPlayerTwoAI)
             {
-                bot.RandomPick();
+                bot.Move();
             }
         }
 
-        private void DisplayWin()
-        {
-            foreach (Button btn in this.Controls.OfType<Button>())
-            {
-                btn.Enabled = false;
-            }
-            StatusStripLabel.Text = (p1_turn) ? "Player One wins" : "Player Two wins";
-        }
-
-        private bool CheckEnd()
+        private bool CheckEndCondition()
         {
 			int x, y;
-			int fslash_total = 0;
-			int bslash_total = 0;
-			int[] row_total = new int[boardsize];
-            int[] col_total = new int[boardsize];
-            List<string> blanks = new List<string>();
+			int fslashTotal = 0;
+			int bslashTotal = 0;
+            bool isThereBlanks = false;
+			int[] rowTotal = new int[boardSize];
+            int[] colTotal = new int[boardSize];
 
             // Sums board values
-            for (y = 0; y < boardsize; y++)
+            for (y = 0; y < boardSize; y++)
             {
-                for (x = 0; x < boardsize; x++)
+                for (x = 0; x < boardSize; x++)
                 {
-                    row_total[y] += board[y, x];
-                    col_total[x] += board[y, x];
-                    bslash_total += (y == x) ? board[y, x] : 0;
+                    rowTotal[y] += board[y, x];
+                    colTotal[x] += board[y, x];
+                    bslashTotal += (y == x) ? board[y, x] : 0;
 
-                    if (board[y, x] == 0)
+                    if (board[y, x] == 0 && !isThereBlanks)
                     {
-                        blanks.Add(string.Format("{0}{1}", y, x));
+                        isThereBlanks = true;
                     }
                 }
 
-                fslash_total += board[y, ((boardsize - 1) - y)];
+                fslashTotal += board[y, ((boardSize - 1) - y)];
             }
 
             // Check for winning condition
-            if ((col_total.Contains(boardsize) || col_total.Contains(-boardsize)) ||
-                (row_total.Contains(boardsize) || row_total.Contains(-boardsize)) ||
-                (fslash_total == boardsize || fslash_total == -boardsize) ||
-                (bslash_total == boardsize || bslash_total == -boardsize))
+            if ((colTotal.Contains(boardSize) || colTotal.Contains(-boardSize)) ||
+                (rowTotal.Contains(boardSize) || rowTotal.Contains(-boardSize)) ||
+                (fslashTotal == boardSize || fslashTotal == -boardSize) ||
+                (bslashTotal == boardSize || bslashTotal == -boardSize))
             {
-                DisplayWin();
+                foreach (Button btn in this.Controls.OfType<Button>())
+                {
+                    btn.Enabled = false;
+                }
+                StatusStripLabel.Text = (isPlayerOneTurn) ? "Player One wins" : "Player Two wins";
                 return true;
             }
 
-            if (blanks.Count == 0)
+            if (!isThereBlanks)
             {
                 StatusStripLabel.Text = "Tie";
                 return true;
             }
+
             return false;
         }
 
@@ -109,32 +106,34 @@ namespace TicTacAI
         }
 
         /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ UI INTERACTIONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-        private void VersusHuman_MenuItem_Click(object sender, EventArgs e)
+        private void VersusMenuItems_Click(object sender, EventArgs e)
         {
-            p2_isAI = false;
+            ToolStripMenuItem menuItem = (ToolStripMenuItem)sender;
+            isPlayerTwoAI = (menuItem.Text.Equals(versusHumanMenuItem.Text)) ? false : true;
             SetBoard();
         }
 
-        private void VersusComputer_MenuItem_Click(object sender, EventArgs e)
+        private void AboutMenuItem_Click(object sender, EventArgs e)
         {
-            p2_isAI = true;
-            SetBoard();
+            About about = new About();
+            about.StartPosition = FormStartPosition.CenterParent;
+            about.ShowDialog();
         }
 
-        private void PlayBoard_Tile_Click(object sender, EventArgs e)
+        private void PlayBoardButton_Click(object sender, EventArgs e)
         {
             Button btn = (Button)sender;
-            btn.Text = (p1_turn == p1_is_x) ? "X" : "O";
+            btn.Text = (isPlayerOneTurn == isPlayerOneX) ? "X" : "O";
             btn.Enabled = false;
 
-            int xpos = (int)Char.GetNumericValue(btn.Name[btn.Name.Length - 1]);
-            int ypos = (int)Char.GetNumericValue(btn.Name[btn.Name.Length - 2]);
-            board[ypos, xpos] = (p1_turn == p1_is_x) ? 1 : -1;
+            int xPosition = (int)Char.GetNumericValue(btn.Name[btn.Name.Length - 1]);
+            int yPosition = (int)Char.GetNumericValue(btn.Name[btn.Name.Length - 2]);
+            board[yPosition, xPosition] = (isPlayerOneTurn == isPlayerOneX) ? 1 : -1;
 
-            if (!CheckEnd())
+            if (!CheckEndCondition())
             {
-                p1_turn = !p1_turn;
-                ChangeTurn();
+                isPlayerOneTurn = !isPlayerOneTurn;
+                SetTurn();
             }
         }
     }

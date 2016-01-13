@@ -8,28 +8,40 @@ namespace TicTacAI
 {
     class Bot
     {
-        private PlayBoard PlayBoard;
+        private PlayBoard playBoard;
+        private bool isAIEasy = true;
 
         public Bot(PlayBoard pb)
         {
-            PlayBoard = pb;
+            playBoard = pb;
         }
 
-        public void RandomPick()
+        private string RandomPick()
         {
             int x, y;
             List<string> blanks = new List<string>();
-            for (y = 0; y < PlayBoard.board.GetLength(0); y++)
+            for (y = 0; y < playBoard.board.GetLength(0); y++)
             {
-                for (x = 0; x < PlayBoard.board.GetLength(0); x++)
+                for (x = 0; x < playBoard.board.GetLength(0); x++)
                 {
-                    if (PlayBoard.board[y, x] == 0)
+                    if (playBoard.board[y, x] == 0)
                     {
                         blanks.Add(string.Format("{0}{1}", y, x));
                     }
                 }
             }
-            PlayBoard.MarkButton(blanks[new Random().Next(blanks.Count)]);
+            return blanks[new Random().Next(blanks.Count)];
+        }
+
+        private string MinMax()
+        {
+            return "";
+        }
+
+        public void Move()
+        {
+            string position = (isAIEasy) ? RandomPick() : MinMax();
+            playBoard.MarkButton(position);
         }
     }
 }
